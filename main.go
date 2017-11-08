@@ -13,6 +13,8 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+var version = "master"
+
 func isMn(r rune) bool {
 	return unicode.Is(unicode.Mn, r) // Mn: nonspacing marks
 }
