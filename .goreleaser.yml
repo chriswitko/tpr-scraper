@@ -15,4 +15,4 @@ archive:
     darwin: macOS
     linux: Tux
   files:
-    - tpr-scraper.licence.txt
+    - tpr-scraper.license.txt
