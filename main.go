@@ -123,6 +123,7 @@ func main() {
 }
 
 func getLinksForAllSources(newspaper *Newspaper) {
+	// TODO: Move DB init connection to main function or struct with custom funcs DB.Connect, DB.BulkNews etc.
 	session, err := mgo.Dial("mongodb://suburb:db$studio$2017@159.203.95.97:27017/thepressreview-prod?authMechanism=SCRAM-SHA-1&authSource=admin")
 	if err != nil {
 		panic(err)
