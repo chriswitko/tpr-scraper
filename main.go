@@ -1,9 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
+	"os"
+	"runtime"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/asciimoo/colly"
@@ -13,7 +17,9 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-var version = "master"
+const (
+	version string = "master"
+)
 
 func isMn(r rune) bool {
 	return unicode.Is(unicode.Mn, r) // Mn: nonspacing marks
@@ -41,6 +47,15 @@ func stripSpaces(str string) string {
 	}, str)
 }
 
+// News is part of feeditem
+type News struct {
+	Title string
+	Link  string
+}
+
+// Newspaper is collection of news
+type Newspaper []News
+
 // FeedSection is part of feed
 type FeedSection struct {
 	Code      string
@@ -62,7 +77,60 @@ type FeedItem struct {
 // Feed is a collection for channels
 type Feed []FeedItem
 
+// prints arg1, arg2
+func f2(arg1 Newspaper) {
+	// fmt.Println(arg1)
+}
+
+func finalPrint(newspaper *Newspaper) {
+	fmt.Println(*newspaper)
+}
+
 func main() {
+	// Log memory usage every n seconds
+	go func() {
+		for {
+			var m runtime.MemStats
+			runtime.ReadMemStats(&m)
+			log.Printf("\nAlloc = %v\nTotalAlloc = %v\nSys = %v\nNumGC = %v\n\n", m.Alloc/1024, m.TotalAlloc/1024, m.Sys/1024, m.NumGC)
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	var testMode bool
+	var url string
+	var pattern string
+	// flag.StringVar(&itemID, "id", "", "hackernews post id")
+	flag.BoolVar(&testMode, "test", false, "test mode on/off")
+	flag.StringVar(&url, "u", "", "website url")
+	flag.StringVar(&pattern, "p", "", "pattern for website")
+	flag.Parse()
+
+	fmt.Println("testMode", testMode)
+
+	var newspaper Newspaper
+
+	// Example: go run main.go -test -u http://www.gazeta.pl/0,0.html -p=".mt_list a"
+	// go run main.go -test -u https://nytimes.com -p=".story a"
+	if testMode {
+		fmt.Println("This is a test mode")
+		if url == "" || pattern == "" {
+			log.Println("URL and Pattern are required")
+			os.Exit(1)
+		}
+		section := FeedSection{
+			Rawsource: url,
+			Pattern:   pattern,
+		}
+		getLinks(section, &newspaper)
+	} else {
+		getAllLinks(&newspaper)
+	}
+
+	finalPrint(&newspaper)
+}
+
+func getAllLinks(newspaper *Newspaper) {
 	session, err := mgo.Dial("mongodb://suburb:db$studio$2017@159.203.95.97:27017/thepressreview-prod?authMechanism=SCRAM-SHA-1&authSource=admin")
 	if err != nil {
 		panic(err)
@@ -86,15 +154,18 @@ func main() {
 		for _, section := range elem.Sections {
 			fmt.Println("Name:", elem.Name)
 			fmt.Println("Section:", section.Code)
-			getLinks(section)
+			out1 := make(chan Newspaper)
+			go func() {
+				out1 <- getLinks(section, newspaper)
+			}()
+			f2(<-out1)
 		}
 	}
 }
 
-func getLinks(section FeedSection) {
+func getLinks(section FeedSection, newspaper *Newspaper) (result Newspaper) {
 	fmt.Println("Section URL:", section.Rawsource)
 	c := colly.NewCollector()
-
 	// Visit only domains: hackerspaces.org, wiki.hackerspaces.org
 	// c.AllowedDomains = []string{"gazeta.pl"}
 
@@ -106,7 +177,12 @@ func getLinks(section FeedSection) {
 		normStr1, _, _ := transform.String(t, e.Text)
 		title := strings.TrimSpace(strings.Trim(normStr1, "\u00a0"))
 		if len(title) > 0 {
-			fmt.Printf("Link found: %q -> %s\n", title, link)
+			// fmt.Printf("Link found: %q -> %s\n", title, link)
+			news := News{
+				Title: title,
+				Link:  link,
+			}
+			*newspaper = append(*newspaper, news)
 		}
 		// Visit link found on page
 		// Only those links are visited which are in AllowedDomains
@@ -121,5 +197,7 @@ func getLinks(section FeedSection) {
 	// Start scraping on https://hackerspaces.org
 	// c.Visit("http://www.gazeta.pl/0,0.html")
 	c.Visit(section.Rawsource)
+	return *newspaper
+	// ch <- fmt.Sprintf("done")
 	// { name: 'headlines', template: '#text_topnews a', url: 'https://www.wp.pl' },
 }
