@@ -77,15 +77,6 @@ type FeedItem struct {
 // Feed is a collection for channels
 type Feed []FeedItem
 
-// prints arg1, arg2
-func f2(arg1 Newspaper) {
-	// fmt.Println(arg1)
-}
-
-func finalPrint(newspaper *Newspaper) {
-	fmt.Println(*newspaper)
-}
-
 func main() {
 	// Log memory usage every n seconds
 	go func() {
@@ -125,13 +116,13 @@ func main() {
 		}
 		getLinks(section, &newspaper)
 	} else {
-		getAllLinks(&newspaper)
+		getLinksForAllSources(&newspaper)
 	}
 
 	finalPrint(&newspaper)
 }
 
-func getAllLinks(newspaper *Newspaper) {
+func getLinksForAllSources(newspaper *Newspaper) {
 	session, err := mgo.Dial("mongodb://suburb:db$studio$2017@159.203.95.97:27017/thepressreview-prod?authMechanism=SCRAM-SHA-1&authSource=admin")
 	if err != nil {
 		panic(err)
@@ -141,15 +132,13 @@ func getAllLinks(newspaper *Newspaper) {
 	// Optional. Switch the session to a monotonic behavior.
 	session.SetMode(mgo.Monotonic, true)
 
-	db := session.DB("thepressreview-prod").C("channels")
-	// Instantiate default collector
+	collection := session.DB("thepressreview-prod").C("channels")
 	result := Feed{}
-	err = db.Find(bson.M{"lab": true}).All(&result)
+
+	err = collection.Find(bson.M{"lab": true}).All(&result)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Println("Name:", result)
 
 	for _, elem := range result {
 		for _, section := range elem.Sections {
@@ -159,7 +148,7 @@ func getAllLinks(newspaper *Newspaper) {
 			go func() {
 				out1 <- getLinks(section, newspaper)
 			}()
-			f2(<-out1)
+			<-out1
 		}
 	}
 }
@@ -171,7 +160,6 @@ func getLinks(section FeedSection, newspaper *Newspaper) (result Newspaper) {
 	// On every a element which has href attribute call callback
 	c.OnHTML(section.Pattern, func(e *colly.HTMLElement) {
 		link := e.Attr("href")
-		// Print link
 		t := transform.Chain(norm.NFD, transform.RemoveFunc(isMn), norm.NFC)
 		normStr1, _, _ := transform.String(t, e.Text)
 		title := strings.TrimSpace(strings.Trim(normStr1, "\u00a0"))
@@ -191,4 +179,8 @@ func getLinks(section FeedSection, newspaper *Newspaper) (result Newspaper) {
 
 	c.Visit(section.Rawsource)
 	return *newspaper
+}
+
+func finalPrint(newspaper *Newspaper) {
+	fmt.Println(*newspaper)
 }
