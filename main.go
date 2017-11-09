@@ -108,6 +108,7 @@ func main() {
 
 	fmt.Println("testMode", testMode)
 
+	// TODO: Replace this with newspaper := make([]*News, 0)
 	var newspaper Newspaper
 
 	// Example: go run main.go -test -u http://www.gazeta.pl/0,0.html -p=".mt_list a"
@@ -166,8 +167,6 @@ func getAllLinks(newspaper *Newspaper) {
 func getLinks(section FeedSection, newspaper *Newspaper) (result Newspaper) {
 	fmt.Println("Section URL:", section.Rawsource)
 	c := colly.NewCollector()
-	// Visit only domains: hackerspaces.org, wiki.hackerspaces.org
-	// c.AllowedDomains = []string{"gazeta.pl"}
 
 	// On every a element which has href attribute call callback
 	c.OnHTML(section.Pattern, func(e *colly.HTMLElement) {
@@ -177,16 +176,12 @@ func getLinks(section FeedSection, newspaper *Newspaper) (result Newspaper) {
 		normStr1, _, _ := transform.String(t, e.Text)
 		title := strings.TrimSpace(strings.Trim(normStr1, "\u00a0"))
 		if len(title) > 0 {
-			// fmt.Printf("Link found: %q -> %s\n", title, link)
 			news := News{
 				Title: title,
 				Link:  link,
 			}
 			*newspaper = append(*newspaper, news)
 		}
-		// Visit link found on page
-		// Only those links are visited which are in AllowedDomains
-		// c.Visit(e.Request.AbsoluteURL(link))
 	})
 
 	// Before making a request print "Visiting ..."
@@ -194,10 +189,6 @@ func getLinks(section FeedSection, newspaper *Newspaper) (result Newspaper) {
 		fmt.Println("Visiting", r.URL.String())
 	})
 
-	// Start scraping on https://hackerspaces.org
-	// c.Visit("http://www.gazeta.pl/0,0.html")
 	c.Visit(section.Rawsource)
 	return *newspaper
-	// ch <- fmt.Sprintf("done")
-	// { name: 'headlines', template: '#text_topnews a', url: 'https://www.wp.pl' },
 }
