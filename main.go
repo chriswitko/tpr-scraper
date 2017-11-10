@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"github.com/asciimoo/colly"
+	"github.com/joho/godotenv"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
 	mgo "gopkg.in/mgo.v2"
@@ -20,6 +21,43 @@ import (
 const (
 	version string = "master"
 )
+
+var dbURI string
+
+// News is part of feeditem
+type News struct {
+	Title string
+	Link  string
+}
+
+// Newspaper is collection of news
+type Newspaper []News
+
+// FeedSection is part of feed
+type FeedSection struct {
+	Code      string
+	Category  string
+	Format    string
+	Source    string
+	Rawsource string `bson:"rawsource"`
+	Pattern   string
+}
+
+// FeedItem Single line
+type FeedItem struct {
+	Name     string
+	Pattern  string
+	Link     string
+	Sections []FeedSection
+}
+
+// Feed is a collection for channels
+type Feed []FeedItem
+
+func (n *Newspaper) print() error {
+	fmt.Println(n)
+	return nil
+}
 
 func isMn(r rune) bool {
 	return unicode.Is(unicode.Mn, r) // Mn: nonspacing marks
@@ -47,84 +85,29 @@ func stripSpaces(str string) string {
 	}, str)
 }
 
-// News is part of feeditem
-type News struct {
-	Title string
-	Link  string
+func finalPrint(newspaper *Newspaper) {
+	newspaper.print()
 }
 
-// Newspaper is collection of news
-type Newspaper []News
-
-// FeedSection is part of feed
-type FeedSection struct {
-	Code      string
-	Category  string
-	Format    string
-	Source    string
-	Rawsource string
-	Pattern   string
-}
-
-// FeedItem Single line
-type FeedItem struct {
-	Name     string
-	Pattern  string
-	Link     string
-	Sections []FeedSection
-}
-
-// Feed is a collection for channels
-type Feed []FeedItem
-
-func main() {
-	// Log memory usage every n seconds
-	go func() {
-		for {
-			var m runtime.MemStats
-			runtime.ReadMemStats(&m)
-			log.Printf("\nAlloc = %v\nTotalAlloc = %v\nSys = %v\nNumGC = %v\n\n", m.Alloc/1024, m.TotalAlloc/1024, m.Sys/1024, m.NumGC)
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	var testMode bool
-	var url string
-	var pattern string
-	// flag.StringVar(&itemID, "id", "", "hackernews post id")
-	flag.BoolVar(&testMode, "test", false, "test mode on/off")
-	flag.StringVar(&url, "u", "", "website url")
-	flag.StringVar(&pattern, "p", "", "pattern for website")
-	flag.Parse()
-
-	fmt.Println("testMode", testMode)
-
-	// TODO: Replace this with newspaper := make([]*News, 0)
-	var newspaper Newspaper
-
-	// Example: go run main.go -test -u http://www.gazeta.pl/0,0.html -p=".mt_list a"
-	// go run main.go -test -u https://nytimes.com -p=".story a"
-	if testMode {
-		fmt.Println("This is a test mode")
-		if url == "" || pattern == "" {
-			log.Println("URL and Pattern are required")
-			os.Exit(1)
-		}
-		section := FeedSection{
-			Rawsource: url,
-			Pattern:   pattern,
-		}
-		getLinks(section, &newspaper)
-	} else {
-		getLinksForAllSources(&newspaper)
+func loadEnv() {
+	e := godotenv.Load()
+	if e != nil {
+		log.Fatal("Error loading .env file")
 	}
-
-	finalPrint(&newspaper)
 }
 
-func getLinksForAllSources(newspaper *Newspaper) {
+func loadDBURI() string {
+	dbURI := os.Getenv("DB_URI")
+	if dbURI == "" {
+		log.Fatal("Missing DB setting in .env file")
+	}
+	return dbURI
+}
+
+func getAllChannels(newspaper *Newspaper) (err error) {
+	fmt.Println("uri", dbURI)
 	// TODO: Move DB init connection to main function or struct with custom funcs DB.Connect, DB.BulkNews etc.
-	session, err := mgo.Dial("mongodb://suburb:db$studio$2017@159.203.95.97:27017/thepressreview-prod?authMechanism=SCRAM-SHA-1&authSource=admin")
+	session, err := mgo.Dial(dbURI)
 	if err != nil {
 		panic(err)
 	}
@@ -147,16 +130,20 @@ func getLinksForAllSources(newspaper *Newspaper) {
 			fmt.Println("Section:", section.Code)
 			out1 := make(chan Newspaper)
 			go func() {
-				out1 <- getLinks(section, newspaper)
+				out1 <- processSection(section, newspaper)
 			}()
 			<-out1
 		}
 	}
+
+	return err
 }
 
-func getLinks(section FeedSection, newspaper *Newspaper) (result Newspaper) {
+func processSection(section FeedSection, newspaper *Newspaper) (result Newspaper) {
 	fmt.Println("Section URL:", section.Rawsource)
 	c := colly.NewCollector()
+
+	news := &News{}
 
 	// On every a element which has href attribute call callback
 	c.OnHTML(section.Pattern, func(e *colly.HTMLElement) {
@@ -165,11 +152,11 @@ func getLinks(section FeedSection, newspaper *Newspaper) (result Newspaper) {
 		normStr1, _, _ := transform.String(t, e.Text)
 		title := strings.TrimSpace(strings.Trim(normStr1, "\u00a0"))
 		if len(title) > 0 {
-			news := News{
+			*news = News{
 				Title: title,
 				Link:  link,
 			}
-			*newspaper = append(*newspaper, news)
+			*newspaper = append(*newspaper, *news)
 		}
 	})
 
@@ -182,6 +169,72 @@ func getLinks(section FeedSection, newspaper *Newspaper) (result Newspaper) {
 	return *newspaper
 }
 
-func finalPrint(newspaper *Newspaper) {
-	fmt.Println(*newspaper)
+func logAllocMemory() {
+	for {
+		var m runtime.MemStats
+		runtime.ReadMemStats(&m)
+		log.Printf("\nAlloc = %v\nTotalAlloc = %v\nSys = %v\nNumGC = %v\n\n", m.Alloc/1024, m.TotalAlloc/1024, m.Sys/1024, m.NumGC)
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func catchPanic(err *error, functionName string) {
+	if r := recover(); r != nil {
+		fmt.Printf("%s : PANIC Defered : %v\n", functionName, r)
+
+		// Capture the stack trace
+		buf := make([]byte, 10000)
+		runtime.Stack(buf, false)
+
+		fmt.Printf("%s : Stack Trace : %s", functionName, string(buf))
+
+		if err != nil {
+			*err = fmt.Errorf("%v", r)
+		}
+	}
+}
+
+func main() {
+	loadEnv()
+	dbURI = loadDBURI()
+
+	var logMode bool
+	var testMode bool
+	var url string
+	var pattern string
+	// TODO: Replace this with newspaper := make([]*News, 0)
+	var newspaper Newspaper
+
+	flag.BoolVar(&logMode, "log", false, "log mode on/off")
+	flag.BoolVar(&testMode, "test", false, "test mode on/off")
+	flag.StringVar(&url, "u", "", "website url")
+	flag.StringVar(&pattern, "p", "", "pattern for website")
+	flag.Parse()
+
+	// Log memory usage every n seconds
+	if logMode {
+		go logAllocMemory()
+	}
+
+	localTime := time.Now()
+	utcTime := localTime.UTC().Format(time.RFC3339)
+	fmt.Println("Current time UTC", utcTime)
+
+	if testMode {
+		fmt.Println("This is a test mode")
+		if url == "" || pattern == "" {
+			log.Println("URL and Pattern are required")
+			os.Exit(1)
+		}
+		section := FeedSection{
+			Rawsource: url,
+			Pattern:   pattern,
+		}
+		processSection(section, &newspaper)
+	} else {
+		getAllChannels(&newspaper)
+	}
+
+	// TODO: Add option -save to save to database or just display on screen
+	finalPrint(&newspaper)
 }
