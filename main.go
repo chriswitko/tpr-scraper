@@ -10,6 +10,8 @@ import (
 	"time"
 	"unicode"
 
+	counters "./utils"
+
 	"github.com/asciimoo/colly"
 	"github.com/joho/godotenv"
 	"golang.org/x/text/transform"
@@ -197,6 +199,10 @@ func catchPanic(err *error, functionName string) {
 func main() {
 	loadEnv()
 	dbURI = loadDBURI()
+
+	counter := counters.AlertCounter(10)
+
+	fmt.Printf("Counter: %d\n", counter)
 
 	var logMode bool
 	var testMode bool
