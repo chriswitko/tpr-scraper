@@ -1,12 +1,15 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -28,8 +31,13 @@ var dbURI string
 
 // News is part of feeditem
 type News struct {
-	Title string
-	Link  string
+	Title       string    `bson:"title"`
+	Description string    `bson:"description"`
+	Link        string    `bson:"url"`
+	Channel     string    `bson:"channel"`
+	Section     string    `bson:"section"`
+	CreatedAt   time.Time `bson:"created_at"`
+	Hash        string    `bson:"hash"`
 }
 
 // Newspaper is collection of news
@@ -39,6 +47,7 @@ type Newspaper []News
 type FeedSection struct {
 	Code      string
 	Category  string
+	Channel   string
 	Format    string
 	Source    string
 	Rawsource string `bson:"rawsource"`
@@ -48,6 +57,7 @@ type FeedSection struct {
 // FeedItem Single line
 type FeedItem struct {
 	Name     string
+	Code     string
 	Pattern  string
 	Link     string
 	Sections []FeedSection
@@ -56,9 +66,15 @@ type FeedItem struct {
 // Feed is a collection for channels
 type Feed []FeedItem
 
+// var wg sync.WaitGroup
+
 func (n *Newspaper) print() error {
 	fmt.Println(n)
 	return nil
+}
+
+func (n *Newspaper) all() []News {
+	return *n
 }
 
 func isMn(r rune) bool {
@@ -89,6 +105,57 @@ func stripSpaces(str string) string {
 
 func finalPrint(newspaper *Newspaper) {
 	newspaper.print()
+
+	session, err := mgo.Dial(dbURI)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	// Optional. Switch the session to a monotonic behavior.
+	session.SetMode(mgo.Monotonic, true)
+
+	i := 0
+
+	collection := session.DB("thepressreview-prod").C("items_bulk")
+	bulk := collection.Bulk()
+
+	all := newspaper.all()
+	for _, news := range all {
+		i++
+		bulk.Upsert(bson.M{"hash": news.Hash}, news)
+	}
+	bulk.Unordered()
+	_, err = bulk.Run()
+	if err != nil {
+		panic(err)
+	}
+	log.Println("All Queries Completed")
+}
+
+func finalPrintSynch(newspaper *Newspaper) {
+	newspaper.print()
+
+	var waitGroup sync.WaitGroup
+	session, err := mgo.Dial(dbURI)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	// Optional. Switch the session to a monotonic behavior.
+	session.SetMode(mgo.Monotonic, true)
+
+	i := 0
+
+	all := newspaper.all()
+	waitGroup.Add(len(all))
+	for _, news := range all {
+		i++
+		go runQuery(i, news, &waitGroup, session)
+	}
+	waitGroup.Wait()
+	log.Println("All Queries Completed")
 }
 
 func loadEnv() {
@@ -130,6 +197,7 @@ func getAllChannels(newspaper *Newspaper) (err error) {
 		for _, section := range elem.Sections {
 			fmt.Println("Name:", elem.Name)
 			fmt.Println("Section:", section.Code)
+			section.Channel = elem.Code
 			out1 := make(chan Newspaper)
 			go func() {
 				out1 <- processSection(section, newspaper)
@@ -154,9 +222,20 @@ func processSection(section FeedSection, newspaper *Newspaper) (result Newspaper
 		normStr1, _, _ := transform.String(t, e.Text)
 		title := strings.TrimSpace(strings.Trim(normStr1, "\u00a0"))
 		if len(title) > 0 {
+			localTime := time.Now()
+			utcTime := localTime.UTC() //.Format(time.RFC3339)
+
+			hasher := md5.New()
+			hasher.Write([]byte(link))
+
 			*news = News{
-				Title: title,
-				Link:  link,
+				Hash:        hex.EncodeToString(hasher.Sum(nil)),
+				Title:       title,
+				Description: "",
+				Link:        link,
+				Section:     section.Category,
+				Channel:     section.Channel,
+				CreatedAt:   utcTime,
 			}
 			*newspaper = append(*newspaper, *news)
 		}
@@ -194,6 +273,40 @@ func catchPanic(err *error, functionName string) {
 			*err = fmt.Errorf("%v", r)
 		}
 	}
+}
+
+func runQuery(query int, news News, waitGroup *sync.WaitGroup, mongoSession *mgo.Session) {
+	// Decrement the wait group count so the program knows this
+	// has been completed once the goroutine exits.
+	defer waitGroup.Done()
+
+	// Request a socket connection from the session to process our query.
+	// Close the session when the goroutine exits and put the connection back
+	// into the pool.
+	sessionCopy := mongoSession.Copy()
+	defer sessionCopy.Close()
+
+	// Get a collection to execute the query against.
+	collection := sessionCopy.DB("thepressreview-prod").C("items_beta")
+
+	log.Printf("RunQuery : %d : Executing\n", query)
+
+	// Retrieve the list of stations.
+	change := mgo.Change{
+		Update:    news,
+		ReturnNew: false,
+		Upsert:    true,
+	}
+
+	doc := bson.M{}
+	_, err := collection.Find(bson.M{"hash": news.Hash}).Apply(change, &doc)
+	// err := collection.Find(nil).All(&buoyStations)
+	if err != nil {
+		log.Printf("RunQuery : ERROR : %s\n", err)
+		return
+	}
+
+	log.Printf("RunQuery : SUCCESS: %d \n", query)
 }
 
 func main() {
