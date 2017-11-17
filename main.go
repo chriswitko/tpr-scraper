@@ -442,7 +442,7 @@ func main() {
 	}
 
 	if testMode {
-		fmt.Println("This is a test mode")
+		fmt.Println(">>> This is a test mode")
 		if url == "" || pattern == "" {
 			fmt.Println("URL and Pattern are required")
 			os.Exit(1)
