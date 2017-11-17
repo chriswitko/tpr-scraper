@@ -266,6 +266,10 @@ func processSection(section FeedSection, newspaper *Newspaper) (result Newspaper
 		t := transform.Chain(norm.NFD, transform.RemoveFunc(isMn), norm.NFC)
 		normStr1, _, _ := transform.String(t, e.Text)
 		title := strings.TrimSpace(strings.Trim(normStr1, "\u00a0"))
+		f := func(c rune) bool {
+			return !unicode.IsLetter(c) && !unicode.IsNumber(c)
+		}
+		title = strings.TrimFunc(title, f)
 		if len(title) > 0 {
 			localTime := time.Now()
 			utcTime := localTime.UTC() //.Format(time.RFC3339)
