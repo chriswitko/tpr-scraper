@@ -13,8 +13,6 @@ import (
 	"time"
 	"unicode"
 
-	counters "./utils"
-
 	"github.com/asciimoo/colly"
 	"github.com/joho/godotenv"
 	"golang.org/x/text/transform"
@@ -28,6 +26,8 @@ const (
 )
 
 var dbURI string
+var dbNAME string
+var debug bool
 
 // News is part of feeditem
 type News struct {
@@ -40,17 +40,23 @@ type News struct {
 	Hash        string    `bson:"hash"`
 }
 
-// Newspaper is collection of news
+// Newspaper is a collection of news
 type Newspaper []News
 
-// FeedSection is part of feed
+// FeedChannel is a collection of channels
+type FeedChannel struct {
+	Code        string    `bson:"code"`
+	ProcessedAt time.Time `bson:"processed_at"`
+}
+
+// FeedSection is a part of feed
 type FeedSection struct {
 	Code      string
 	Category  string
 	Channel   string
 	Format    string
 	Source    string
-	Rawsource string `bson:"rawsource"`
+	RawSource string `bson:"raw_source"`
 	Pattern   string
 }
 
@@ -69,7 +75,9 @@ type Feed []FeedItem
 // var wg sync.WaitGroup
 
 func (n *Newspaper) print() error {
-	fmt.Println(n)
+	if len(n.all()) > 0 {
+		fmt.Println(n)
+	}
 	return nil
 }
 
@@ -103,9 +111,14 @@ func stripSpaces(str string) string {
 	}, str)
 }
 
-func finalPrint(newspaper *Newspaper) {
+func display(newspaper *Newspaper) {
 	newspaper.print()
+}
 
+func publish(newspaper *Newspaper) {
+	if debug {
+		log.Println("Publishing using bulk method")
+	}
 	session, err := mgo.Dial(dbURI)
 	if err != nil {
 		panic(err)
@@ -117,25 +130,36 @@ func finalPrint(newspaper *Newspaper) {
 
 	i := 0
 
-	collection := session.DB("thepressreview-prod").C("items_bulk")
+	collection := session.DB(dbNAME).C("items_bulk")
 	bulk := collection.Bulk()
 
 	all := newspaper.all()
+	prevChannel := ""
 	for _, news := range all {
 		i++
 		bulk.Upsert(bson.M{"hash": news.Hash}, news)
+		if prevChannel != news.Channel {
+			updateChannel(FeedChannel{
+				Code: news.Channel,
+			}, session)
+			prevChannel = news.Channel
+		}
 	}
 	bulk.Unordered()
 	_, err = bulk.Run()
 	if err != nil {
 		panic(err)
 	}
-	log.Println("All Queries Completed")
+
+	if debug {
+		log.Println("All queries completed")
+	}
 }
 
-func finalPrintSynch(newspaper *Newspaper) {
-	newspaper.print()
-
+func publishSynch(newspaper *Newspaper) {
+	if debug {
+		log.Println("Publishing using queue method")
+	}
 	var waitGroup sync.WaitGroup
 	session, err := mgo.Dial(dbURI)
 	if err != nil {
@@ -155,27 +179,33 @@ func finalPrintSynch(newspaper *Newspaper) {
 		go runQuery(i, news, &waitGroup, session)
 	}
 	waitGroup.Wait()
-	log.Println("All Queries Completed")
+	if debug {
+		log.Println("All queries completed")
+	}
 }
 
 func loadEnv() {
 	e := godotenv.Load()
 	if e != nil {
-		log.Fatal("Error loading .env file")
+		panic("Error loading .env file")
 	}
 }
 
-func loadDBURI() string {
+func loadDBURI() (string, string) {
 	dbURI := os.Getenv("DB_URI")
-	if dbURI == "" {
-		log.Fatal("Missing DB setting in .env file")
+	dbNAME := os.Getenv("DB_NAME")
+	if dbURI == "" || dbNAME == "" {
+		panic("Missing DB setting in .env file")
 	}
-	return dbURI
+	return dbURI, dbNAME
 }
 
 func getAllChannels(newspaper *Newspaper) (err error) {
-	fmt.Println("uri", dbURI)
-	// TODO: Move DB init connection to main function or struct with custom funcs DB.Connect, DB.BulkNews etc.
+	if debug {
+		log.Println("DB_URI", dbURI)
+		log.Println("DB_NAME", dbNAME)
+	}
+
 	session, err := mgo.Dial(dbURI)
 	if err != nil {
 		panic(err)
@@ -185,18 +215,29 @@ func getAllChannels(newspaper *Newspaper) (err error) {
 	// Optional. Switch the session to a monotonic behavior.
 	session.SetMode(mgo.Monotonic, true)
 
-	collection := session.DB("thepressreview-prod").C("channels")
+	collection := session.DB(dbNAME).C("channels")
 	result := Feed{}
 
-	err = collection.Find(bson.M{"lab": true}).All(&result)
+	localTime := time.Now()
+	dur, _ := time.ParseDuration("5m")
+
+	err = collection.Find(bson.M{
+		"lab": true,
+		"processed_at": bson.M{
+			"$lte": localTime.Add(-dur),
+		},
+	}).All(&result)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	for _, elem := range result {
 		for _, section := range elem.Sections {
-			fmt.Println("Name:", elem.Name)
-			fmt.Println("Section:", section.Code)
+			if debug {
+				log.Println("Name:", elem.Name)
+				log.Println("Code:", elem.Code)
+				log.Println("Section:", section.Code)
+			}
 			section.Channel = elem.Code
 			out1 := make(chan Newspaper)
 			go func() {
@@ -210,10 +251,14 @@ func getAllChannels(newspaper *Newspaper) (err error) {
 }
 
 func processSection(section FeedSection, newspaper *Newspaper) (result Newspaper) {
-	fmt.Println("Section URL:", section.Rawsource)
+	if debug {
+		log.Println("Section URL:", section.RawSource)
+	}
 	c := colly.NewCollector()
 
 	news := &News{}
+
+	var sectionNews []News
 
 	// On every a element which has href attribute call callback
 	c.OnHTML(section.Pattern, func(e *colly.HTMLElement) {
@@ -237,16 +282,22 @@ func processSection(section FeedSection, newspaper *Newspaper) (result Newspaper
 				Channel:     section.Channel,
 				CreatedAt:   utcTime,
 			}
+			sectionNews = append(sectionNews, *news)
 			*newspaper = append(*newspaper, *news)
 		}
 	})
 
 	// Before making a request print "Visiting ..."
 	c.OnRequest(func(r *colly.Request) {
-		fmt.Println("Visiting", r.URL.String())
+		if debug {
+			log.Println("Visiting", r.URL.String())
+		}
 	})
 
-	c.Visit(section.Rawsource)
+	c.Visit(section.RawSource)
+	if debug {
+		log.Printf("Total number of news: %d\n", len(sectionNews))
+	}
 	return *newspaper
 }
 
@@ -275,6 +326,39 @@ func catchPanic(err *error, functionName string) {
 	}
 }
 
+func updateChannel(feedChannel FeedChannel, mongoSession *mgo.Session) {
+	// Decrement the wait group count so the program knows this
+	// has been completed once the goroutine exits.
+	// Close the session when the goroutine exits and put the connection back
+	// into the pool.
+	sessionCopy := mongoSession.Copy()
+	defer sessionCopy.Close()
+
+	// Get a collection to execute the query against.
+	channels := sessionCopy.DB(dbNAME).C("channels")
+
+	localTime := time.Now()
+	utcTime := localTime.UTC() //.Format(time.RFC3339)
+	feedChannel.ProcessedAt = utcTime
+
+	channelChange := mgo.Change{
+		Update: bson.M{
+			"$set": feedChannel,
+		},
+		ReturnNew: false,
+		Upsert:    false,
+	}
+
+	channelDoc := bson.M{}
+	_, channelErr := channels.Find(bson.M{"code": feedChannel.Code}).Apply(channelChange, &channelDoc)
+	if channelErr != nil {
+		if debug {
+			log.Printf("RunQuery : ERROR : %s\n", channelErr)
+		}
+		return
+	}
+}
+
 func runQuery(query int, news News, waitGroup *sync.WaitGroup, mongoSession *mgo.Session) {
 	// Decrement the wait group count so the program knows this
 	// has been completed once the goroutine exits.
@@ -287,73 +371,98 @@ func runQuery(query int, news News, waitGroup *sync.WaitGroup, mongoSession *mgo
 	defer sessionCopy.Close()
 
 	// Get a collection to execute the query against.
-	collection := sessionCopy.DB("thepressreview-prod").C("items_beta")
+	items := sessionCopy.DB(dbNAME).C("items_beta")
 
-	log.Printf("RunQuery : %d : Executing\n", query)
+	if debug {
+		log.Printf("RunQuery : %d : Executing\n", query)
+	}
 
 	// Retrieve the list of stations.
-	change := mgo.Change{
+	itemChange := mgo.Change{
 		Update:    news,
 		ReturnNew: false,
 		Upsert:    true,
 	}
 
 	doc := bson.M{}
-	_, err := collection.Find(bson.M{"hash": news.Hash}).Apply(change, &doc)
-	// err := collection.Find(nil).All(&buoyStations)
+	_, err := items.Find(bson.M{"hash": news.Hash}).Apply(itemChange, &doc)
 	if err != nil {
-		log.Printf("RunQuery : ERROR : %s\n", err)
+		if debug {
+			log.Printf("RunQuery : ERROR : %s\n", err)
+		}
 		return
 	}
 
-	log.Printf("RunQuery : SUCCESS: %d \n", query)
+	if debug {
+		log.Printf("RunQuery : SUCCESS: %d \n", query)
+	}
 }
 
 func main() {
 	loadEnv()
-	dbURI = loadDBURI()
+	dbURI, dbNAME = loadDBURI()
 
-	counter := counters.AlertCounter(10)
-
-	fmt.Printf("Counter: %d\n", counter)
+	// counter := counters.AlertCounter(10)
 
 	var logMode bool
 	var testMode bool
+	var allMode bool
+	var saveMode bool
+	var displayMode bool
+	var memoryMode bool
 	var url string
 	var pattern string
-	// TODO: Replace this with newspaper := make([]*News, 0)
 	var newspaper Newspaper
 
-	flag.BoolVar(&logMode, "log", false, "log mode on/off")
-	flag.BoolVar(&testMode, "test", false, "test mode on/off")
-	flag.StringVar(&url, "u", "", "website url")
-	flag.StringVar(&pattern, "p", "", "pattern for website")
+	flag.BoolVar(&logMode, "log", false, "Turn on/off logs")
+	flag.BoolVar(&testMode, "test", false, "Test mode to verify pattern, -u and -p attributes are required")
+	flag.BoolVar(&allMode, "all", false, "Process all channels")
+	flag.BoolVar(&saveMode, "save", false, "Save all results to database")
+	flag.BoolVar(&displayMode, "display", false, "Display all results on the screen")
+	flag.BoolVar(&memoryMode, "memory", false, "Display memory benchmarks")
+	flag.StringVar(&url, "u", "", "The URL to fetch")
+	flag.StringVar(&pattern, "p", "", "Pattern to search on website")
 	flag.Parse()
 
 	// Log memory usage every n seconds
 	if logMode {
+		debug = true
+	}
+
+	if memoryMode {
 		go logAllocMemory()
 	}
 
-	localTime := time.Now()
-	utcTime := localTime.UTC().Format(time.RFC3339)
-	fmt.Println("Current time UTC", utcTime)
+	if debug {
+		log.Println("Process init.")
+	}
 
 	if testMode {
 		fmt.Println("This is a test mode")
 		if url == "" || pattern == "" {
-			log.Println("URL and Pattern are required")
+			fmt.Println("URL and Pattern are required")
 			os.Exit(1)
 		}
 		section := FeedSection{
-			Rawsource: url,
+			RawSource: url,
 			Pattern:   pattern,
 		}
 		processSection(section, &newspaper)
-	} else {
+	} else if allMode {
 		getAllChannels(&newspaper)
+	} else {
+		fmt.Println("Tip: Use -help to display available options.")
 	}
 
-	// TODO: Add option -save to save to database or just display on screen
-	finalPrint(&newspaper)
+	if saveMode {
+		publish(&newspaper)
+	}
+
+	if displayMode {
+		display(&newspaper)
+	}
+
+	if debug {
+		log.Println("Process done.")
+	}
 }
