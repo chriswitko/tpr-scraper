@@ -255,6 +255,7 @@ func processSection(section FeedSection, newspaper *Newspaper) (result Newspaper
 		log.Println("Section URL:", section.RawSource)
 	}
 	c := colly.NewCollector()
+	c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 5})
 
 	news := &News{}
 

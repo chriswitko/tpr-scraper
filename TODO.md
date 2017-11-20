@@ -1,3 +1,5 @@
+[] Try papeeter with cnn
+[] Report if the pattern return no results
 [] Add multiple patterns per site .area a,.area2 a
 [] Add -channels=gazetapl,bbc and -sections=latest
 [] Add -exclude
