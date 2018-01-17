@@ -17,3 +17,4 @@ https://github.com/asciimoo/colly/blob/master/_examples/hackernews_comments/hack
 https://godoc.org/gopkg.in/mgo.v2#Collection.Find
 https://github.com/ungerik/go-dry/blob/master/string.go
 https://gobyexample.com
+https://godoc.org/github.com/atotto/clipboard

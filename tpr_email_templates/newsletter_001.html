@@ -1,0 +1,132 @@
+{{define "newsletter_001.html"}}
+<!DOCTYPE html>
+<html>
+  {{template "head.html" .}}
+  <body style="width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;height:100% !important;margin-top:0 !important;margin-bottom:0 !important;margin-right:0 !important;margin-left:0 !important;padding-top:0 !important;padding-bottom:0 !important;padding-right:0 !important;padding-left:0 !important;" width="100%">
+    <table bgcolor="" border="0" cellpadding="0" cellspacing="0" style="width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" width="100%">
+      <tbody>
+        <tr>
+          <td style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+            <!-- ad -->
+            <!--[if (gte mso 9)|(IE)]>
+            <table align="center" border="0" cellspacing="0" cellpadding="0" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" >
+              <tr>
+                <td align="center" valign="top" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;" >
+                  <![endif]-->
+                  <table border="0" cellpadding="0" cellspacing="0" style="width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" width="100%">
+                    <tbody>
+                      <tr>
+                        <td align="center" bgcolor="" class="" style="padding-top:5px;padding-bottom:5px;padding-right:15px;padding-left:15px;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                          <!--[if (gte mso 9)|(IE)]>
+                          <table align="center" border="0" cellspacing="0" cellpadding="0" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" >
+                            <tr>
+                              <td align="center" valign="top" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;" >
+                                <![endif]-->
+                                <table border="0" cellpadding="0" cellspacing="0" class="responsive-table" style="max-width:560px;width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" width="100%">
+                                  <tbody>
+                                    <tr>
+                                      <td style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                                        <table border="0" cellpadding="0" cellspacing="0" style="width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" width="100%">
+                                          <tbody>
+                                            <tr>
+                                              <td style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                                                <table border="0" cellpadding="0" cellspacing="0" style="width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" width="100%">
+                                                  <tbody>
+                                                    <tr>
+                                                      <td align="left" class="padding" style="padding-top:5px;padding-bottom:5px;padding-right:0;padding-left:0;font-size:16px;line-height:21px;font-weight:300;font-family:Consolas, Andale Mono, Monaco, Courier New, monospace;color:#292929;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                                                        <p>
+                                                          Hello there. Let's dive into next portion of news collected for you. Remember, that you can always <a href="{{.Website}}">manage your subscription</a> and <a href="{{.Website}}/settings">change your preferences</a> in the settings.
+                                                        </p>
+                                                      </td>
+                                                    </tr>
+                                                  </tbody>
+                                                </table>
+                                              </td>
+                                            </tr>
+                                            {{range $key, $value := .Headlines}}
+                                            <tr>
+                                              <td style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                                                <table border="0" cellpadding="0" cellspacing="0" style="width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" width="100%">
+                                                  <tbody>
+                                                    <tr>
+                                                      <td align="left" class="padding heading-primary" style="font-size:22.781px;font-family:-apple-system, BlinkMacSystemFont, Helvetica Neue, Helvetica, Arial, sans-serif;color:#292929;padding-top:10px;padding-bottom:0;padding-right:0;padding-left:0;line-height:30px;letter-spacing:.4px;font-weight:700;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                                                        <a href="" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;color:#292929;text-decoration:none;">{{$key}}</a>
+                                                      </td>
+                                                    </tr>
+                                                  </tbody>
+                                                </table>
+                                              </td>
+                                            </tr>
+                                            <tr>
+                                              <td style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                                                <table border="0" cellpadding="0" cellspacing="0" style="width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" width="100%">
+                                                  <tbody>
+                                                    <tr>
+                                                      <td align="left" class="padding" style="padding-top:2.5px;padding-bottom:5px;padding-right:0;padding-left:0;font-size:16px;line-height:21px;font-weight:300;font-family:Consolas, Andale Mono, Monaco, Courier New, monospace;color:#292929;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                                                        <!-- <% _.forEach(source.sections, function(section) { %> -->
+                                                          <!-- <p><strong><%- data.categories[section.section] %></strong></p> -->
+                                                          {{range $value}}
+                                                            {{range .Items}}
+                                                            <p>
+                                                              + <a href="{{.Link}}" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;color:#EC008C;text-decoration:none;">{{.Title}}</a>
+                                                              <br /><a style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;color:#a8a8a8!important;text-decoration:none;font-size:13px;line-height:18px;"><small>{{.Hostname}}</small></a>
+                                                            </p>
+                                                            {{end}}
+                                                          {{end}}
+                                                        <!-- <% }); %> -->
+                                                      </td>
+                                                    </tr>
+                                                  </tbody>
+                                                </table>
+                                              </td>
+                                            </tr>
+                                            {{end}}
+                                          </tbody>
+                                        </table>
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                                <!--[if (gte mso 9)|(IE)]>
+                              </td>
+                            </tr>
+                          </table>
+                          <![endif]-->
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <!--[if (gte mso 9)|(IE)]>
+                </td>
+              </tr>
+            </table>
+            <![endif]-->
+            <!--[if (gte mso 9)|(IE)]>
+            <table align="center" border="0" cellspacing="0" cellpadding="0" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" >
+              <tr>
+                <td align="center" valign="top" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;" >
+                  <![endif]-->
+                  <!--[if (gte mso 9)|(IE)]>
+                  <table align="center" border="0" cellspacing="0" cellpadding="0" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" >
+                    <tr>
+                      <td align="center" valign="top" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;" >
+                        <![endif]-->
+                        <!--[if (gte mso 9)|(IE)]>
+                      </td>
+                    </tr>
+                  </table>
+                  <![endif]-->
+                  <!--[if (gte mso 9)|(IE)]>
+                </td>
+              </tr>
+            </table>
+            <![endif]-->
+            {{template "footer.html" .}}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <img alt="" border="0" height="1" src="https://www.google-analytics.com/collect?v=1&tid=UA-104622151-1&t=event&cid={{.UserID}}&ec=email&ea=open" style="visibility:hidden !important;display:block !important;height:1px !important;width:1px !important;border-width:0 !important;margin-top:0 !important;margin-bottom:0 !important;margin-right:0 !important;margin-left:0 !important;padding-top:0 !important;padding-bottom:0 !important;padding-right:0 !important;padding-left:0 !important;-ms-interpolation-mode:bicubic;line-height:100%;outline-style:none;text-decoration:none;" width="1">
+  </body>
+</html>
+{{end}}

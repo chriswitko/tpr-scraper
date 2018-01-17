@@ -1,0 +1,53 @@
+{{define "footer.html"}}
+<!--[if (gte mso 9)|(IE)]>
+<table align="center" border="0" cellspacing="0" cellpadding="0" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" >
+  <tr>
+    <td align="center" valign="top" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;" >
+      <![endif]-->
+      <table border="0" cellpadding="0" cellspacing="0" style="width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" width="100%">
+        <tbody>
+          <tr>
+            <td align="center" bgcolor="" style="padding-top:50px;padding-bottom:20px;padding-right:15px;padding-left:15px;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+              <!--[if (gte mso 9)|(IE)]>
+              <table align="center" border="0" cellspacing="0" cellpadding="0" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" >
+                <tr>
+                  <td align="center" valign="top" width="500" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:'kern' 1;font-feature-settings:'kern' 1;mso-table-lspace:0pt;mso-table-rspace:0pt;" >
+                    <![endif]-->
+                    <table align="center" border="0" cellpadding="0" cellspacing="0" class="responsive-table" style="max-width:560px;width:100% !important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse !important;" width="100%">
+                      <tbody>
+                        <tr>
+                          <td align="center" style="max-width:170px;padding-bottom:25px;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                            <a href="{{.Website}}?ref=logo" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;color:#EC008C;text-decoration:none;" target="_blank">
+                            <img alt="" border="0" src="https://s3.amazonaws.com/thepressreview/logos/logo_chat_v2.png" style="width:100%;max-width:170px;height:auto;-ms-interpolation-mode:bicubic;border-width:0;line-height:100%;outline-style:none;text-decoration:none;" width="170">
+                            </a>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td align="" class="padding" style="font-size:12px;line-height:18px;font-family:-apple-system, BlinkMacSystemFont, Helvetica Neue, Helvetica, Arial, sans-serif;color:#292929;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+                            <div style="padding-bottom:10px;text-align:center;">This email was sent to {{.Email}}. Manage your
+                              <a href="{{.Website}}/settings" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;color:#EC008C;text-decoration:none;">email preferences</a>, or
+                              <a href="{{.Website}}/unsubscribe?token={{.Token}}" style="-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;-webkit-font-feature-settings:1;font-feature-settings:1;color:#EC008C;text-decoration:none;">unsubscribe</a> to stop receiving emails from Newspeller.
+                            </div>
+                            <div style="text-align:center;">The Press Review @ SUBURB STUDIO, 90 Western Avenue, London, W3 7TX, UK.
+                              <br>
+                              Copyright &copy; 2017. All rights reserved.
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <!--[if (gte mso 9)|(IE)]>
+                  </td>
+                </tr>
+              </table>
+              <![endif]-->
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <!--[if (gte mso 9)|(IE)]>
+    </td>
+  </tr>
+</table>
+<![endif]-->
+{{end}}

@@ -1,0 +1,31 @@
+[
+  {
+    "id": "date",
+    "execute-command": "date",
+    "command-working-directory": "/etc/webhook",
+    "response-message": "Executing redeploy script",
+    "include-command-output-in-response": true
+  },
+  {
+    "id": "hello",
+    "execute-command": "echo",
+    "pass-arguments-to-command": [
+      {
+        "source": "url",
+        "name": "name"
+      },
+      {
+        "source": "string",
+        "name": "name"
+      }
+    ],
+    "command-working-directory": "/etc/webhook",
+    "include-command-output-in-response": true
+  },
+  {
+    "id": "journalist",
+    "execute-command": "/var/scripts/run-journalist.sh",
+    "command-working-directory": "/var/scripts",
+    "include-command-output-in-response": true
+  }
+]
